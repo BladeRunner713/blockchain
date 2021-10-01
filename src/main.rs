@@ -9,7 +9,6 @@ pub mod crypto;
 pub mod miner;
 pub mod network;
 pub mod transaction;
-mod merkle;
 
 use clap::clap_app;
 use crossbeam::channel;

@@ -1,24 +1,98 @@
+use ring::digest::{digest, SHA256};
 use super::hash::{Hashable, H256};
+
+/// A Merkle tree.
+#[derive(Debug, Default, Clone)]
+struct MerkleTreeNode {
+    left: Option<Box<MerkleTreeNode>>,
+    right: Option<Box<MerkleTreeNode>>,
+    hash: H256,
+}
 
 /// A Merkle tree.
 #[derive(Debug, Default)]
 pub struct MerkleTree {
+    root: MerkleTreeNode,
+    level_count: usize, // how many levels the tree has
+}
+
+/// Given the hash of the left and right nodes, compute the hash of the parent node.
+fn hash_children(left: &H256, right: &H256) -> H256 {
+    return digest(&SHA256, &([left.as_ref(), right.as_ref()].concat())).into();
+}
+
+/// Duplicate the last node in `nodes` to make its length even.
+fn duplicate_last_node(nodes: &mut Vec<Option<MerkleTreeNode>>) {
+    nodes.push(nodes[nodes.len() - 1].clone());
 }
 
 impl MerkleTree {
     pub fn new<T>(data: &[T]) -> Self where T: Hashable, {
-        unimplemented!()
+        assert!(!data.is_empty());
+
+        // create the leaf nodes:
+        let mut curr_level: Vec<Option<MerkleTreeNode>> = Vec::new();
+        for item in data {
+            curr_level.push(Some(MerkleTreeNode {
+                hash: item.hash(),
+                left: None,
+                right: None,
+            }));
+        }
+        let mut level_count = 1;
+        // create the upper levels of the tree:
+        while curr_level.len() > 1 {
+            // Whenever a level of the tree has odd number of nodes, duplicate the last node to make the number even:
+            if curr_level.len() % 2 == 1 {
+                duplicate_last_node(&mut curr_level);
+            }
+            assert_eq!(curr_level.len() % 2, 0); // make sure we now have even number of nodes.
+
+            let mut next_level: Vec<Option<MerkleTreeNode>> = Vec::new();
+            for i in 0..curr_level.len() / 2 {
+                let left = curr_level[i * 2].take().unwrap();
+                let right = curr_level[i * 2 + 1].take().unwrap();
+                let hash = hash_children(&left.hash, &right.hash);
+                next_level.push(Some(MerkleTreeNode {
+                    hash,
+                    left: Some(Box::new(left)),
+                    right: Some(Box::new(right)),
+                }));
+            }
+            curr_level = next_level;
+            level_count += 1;
+        }
+        MerkleTree {
+            root: curr_level[0].take().unwrap(),
+            level_count,
+        }
     }
 
     pub fn root(&self) -> H256 {
-        unimplemented!()
+        return self.root.hash;
     }
 
     /// Returns the Merkle Proof of data at index i
     pub fn proof(&self, index: usize) -> Vec<H256> {
-        unimplemented!()
+        let mut proof_vector: Vec<H256> = Vec::new();
+        let mut leaf_size = 2_usize.pow(((self.level_count - 1) as u32));
+        let mut current_node = self.root.clone();
+        while leaf_size > 1 {
+            if index < (leaf_size / 2) {
+                // Left subtree
+                proof_vector.push(current_node.right.unwrap().hash);
+                current_node = *current_node.left.unwrap();
+            } else {
+                // Right subtree
+                proof_vector.push(current_node.left.unwrap().hash);
+                current_node = *current_node.right.unwrap();
+            }
+            leaf_size /= 2;
+        }
+        return proof_vector;
     }
 }
+
 
 /// Verify that the datum hash with a vector of proofs will produce the Merkle root. Also need the
 /// index of datum and `leaf_size`, the total number of leaves.
@@ -29,6 +103,7 @@ pub fn verify(root: &H256, datum: &H256, proof: &[H256], index: usize, leaf_size
 #[cfg(test)]
 mod tests {
     use crate::crypto::hash::H256;
+    use crate::crypto::merkle::MerkleTree;
     use super::*;
 
     macro_rules! gen_merkle_tree_data {
