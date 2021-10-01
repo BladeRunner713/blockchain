@@ -1,4 +1,6 @@
-use super::hash::{Hashable, H256};
+use ring::digest::{digest, SHA256};
+use crate::crypto::hash::{H256, Hashable};
+// use super::hash::{Hashable, H256};
 
 #[derive(Debug, Default, Clone)]
 struct MerkleTreeNode {
@@ -16,18 +18,18 @@ pub struct MerkleTree {
 
 /// Given the hash of the left and right nodes, compute the hash of the parent node.
 fn hash_children(left: &H256, right: &H256) -> H256 {
-    digest(&SHA256, &([left.as_ref(), right.as_ref()].concat())).into();
+    return digest(&SHA256, &([left.as_ref(), right.as_ref()].concat())).into();
 }
 
 /// Duplicate the last node in `nodes` to make its length even.
 fn duplicate_last_node(nodes: &mut Vec<Option<MerkleTreeNode>>) {
-    nodes.push(node[nodes.last()].clone());
+    nodes.push(nodes[nodes.len() - 1].clone());
 }
 
 impl MerkleTree {
     pub fn new<T>(data: &[T]) -> Self
-    where
-        T: Hashable,
+        where
+            T: Hashable,
     {
         assert!(!data.is_empty());
 
@@ -70,7 +72,7 @@ impl MerkleTree {
     }
 
     pub fn root(&self) -> H256 {
-        return self.root;
+        return self.root.hash;
     }
 
     /// Returns the Merkle Proof of data at index i
@@ -140,7 +142,7 @@ mod tests {
             &input_data[0].hash(),
             &proof,
             0,
-            input_data.len()
+            input_data.len(),
         ));
     }
 }
