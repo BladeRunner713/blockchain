@@ -16,25 +16,31 @@ pub struct MerkleTree {
 
 /// Given the hash of the left and right nodes, compute the hash of the parent node.
 fn hash_children(left: &H256, right: &H256) -> H256 {
-    unimplemented!();
+    digest(&SHA256, &([left.as_ref(), right.as_ref()].concat())).into();
 }
 
 /// Duplicate the last node in `nodes` to make its length even.
 fn duplicate_last_node(nodes: &mut Vec<Option<MerkleTreeNode>>) {
-    unimplemented!();
+    nodes.push(node[nodes.last()].clone());
 }
 
 impl MerkleTree {
-    pub fn new<T>(data: &[T]) -> Self where T: Hashable, {
+    pub fn new<T>(data: &[T]) -> Self
+    where
+        T: Hashable,
+    {
         assert!(!data.is_empty());
 
         // create the leaf nodes:
         let mut curr_level: Vec<Option<MerkleTreeNode>> = Vec::new();
         for item in data {
-            curr_level.push(Some(MerkleTreeNode { hash: item.hash(), left: None, right: None }));
+            curr_level.push(Some(MerkleTreeNode {
+                hash: item.hash(),
+                left: None,
+                right: None,
+            }));
         }
         let mut level_count = 1;
-        
         // create the upper levels of the tree:
         while curr_level.len() > 1 {
             // Whenever a level of the tree has odd number of nodes, duplicate the last node to make the number even:
@@ -48,7 +54,11 @@ impl MerkleTree {
                 let left = curr_level[i * 2].take().unwrap();
                 let right = curr_level[i * 2 + 1].take().unwrap();
                 let hash = hash_children(&left.hash, &right.hash); // TODO: implement this helper function
-                next_level.push(Some(MerkleTreeNode { hash: hash, left: Some(Box::new(left)), right: Some(Box::new(right)) }));
+                next_level.push(Some(MerkleTreeNode {
+                    hash: hash,
+                    left: Some(Box::new(left)),
+                    right: Some(Box::new(right)),
+                }));
             }
             curr_level = next_level;
             level_count += 1;
@@ -60,7 +70,7 @@ impl MerkleTree {
     }
 
     pub fn root(&self) -> H256 {
-        unimplemented!()
+        return self.root;
     }
 
     /// Returns the Merkle Proof of data at index i
@@ -77,8 +87,8 @@ pub fn verify(root: &H256, datum: &H256, proof: &[H256], index: usize, leaf_size
 
 #[cfg(test)]
 mod tests {
-    use crate::crypto::hash::H256;
     use super::*;
+    use crate::crypto::hash::H256;
 
     macro_rules! gen_merkle_tree_data {
         () => {{
@@ -112,8 +122,9 @@ mod tests {
         let input_data: Vec<H256> = gen_merkle_tree_data!();
         let merkle_tree = MerkleTree::new(&input_data);
         let proof = merkle_tree.proof(0);
-        assert_eq!(proof,
-                   vec![hex!("965b093a75a75895a351786dd7a188515173f6928a8af8c9baa4dcff268a4f0f").into()]
+        assert_eq!(
+            proof,
+            vec![hex!("965b093a75a75895a351786dd7a188515173f6928a8af8c9baa4dcff268a4f0f").into()]
         );
         // "965b093a75a75895a351786dd7a188515173f6928a8af8c9baa4dcff268a4f0f" is the hash of
         // "0101010101010101010101010101010101010101010101010101010101010202"
@@ -124,6 +135,12 @@ mod tests {
         let input_data: Vec<H256> = gen_merkle_tree_data!();
         let merkle_tree = MerkleTree::new(&input_data);
         let proof = merkle_tree.proof(0);
-        assert!(verify(&merkle_tree.root(), &input_data[0].hash(), &proof, 0, input_data.len()));
+        assert!(verify(
+            &merkle_tree.root(),
+            &input_data[0].hash(),
+            &proof,
+            0,
+            input_data.len()
+        ));
     }
 }
