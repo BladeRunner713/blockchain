@@ -112,17 +112,17 @@ pub fn verify(root: &H256, datum: &H256, proof: &[H256], index: usize, leaf_size
     }
     let mut current_index = index.clone();
     let mut current_node = datum.clone();
-    let mut current_level = 0;
-    while current_level < proof.len() {
+    let mut remaining_proof = 0;
+    while remaining_proof < proof.len() {
         if current_index % 2 == 0 {
-            current_node = digest(&SHA256, &([current_node.as_ref(), proof[current_level].as_ref
+            current_node = digest(&SHA256, &([current_node.as_ref(), proof[remaining_proof].as_ref
             ()].concat())).into()
         } else {
-            current_node = digest(&SHA256, &([proof[current_level].as_ref(), current_node.as_ref
+            current_node = digest(&SHA256, &([proof[remaining_proof].as_ref(), current_node.as_ref
             ()].concat())).into()
         }
         current_index /= 2;
-        current_level += 1;
+        remaining_proof += 1;
     }
     println!("Calculated root Hash value is {}", current_node.hash());
     println!("Expected root Hash value is {}", root.hash());
