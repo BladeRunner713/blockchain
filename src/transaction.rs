@@ -17,19 +17,9 @@ pub fn sign(t: &Transaction, key: &Ed25519KeyPair) -> Signature {
 }
 
 /// Verify digital signature of a transaction, using public key instead of secret key
-pub fn verify(
-    t: &Transaction,
-    public_key: &<Ed25519KeyPair as KeyPair>::PublicKey,
-    signature: &Signature,
-) -> bool {
-    let peer_public_key =
-        ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, public_key);
-    return peer_public_key
-        .verify(
-            (t.input.to_string() + &t.output.to_string()).as_bytes(),
-            signature.as_ref(),
-        )
-        .is_ok();
+pub fn verify(t: &Transaction, public_key: &<Ed25519KeyPair as KeyPair>::PublicKey, signature: &Signature) -> bool {
+    let peer_public_key = ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, public_key);
+    return peer_public_key.verify((t.input.to_string() + &t.output.to_string()).as_bytes(), signature.as_ref()).is_ok();
 }
 
 #[cfg(any(test, test_utilities))]

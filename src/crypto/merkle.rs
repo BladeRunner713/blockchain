@@ -76,7 +76,7 @@ impl MerkleTree {
     pub fn proof(&self, index: usize) -> Vec<H256> {
         let mut current_index = index.clone() as usize;
         let mut proof_vector: Vec<H256> = Vec::new();
-        let mut leaf_size = 2_i32.pow(((self.level_count - 1) as u32)) as usize;
+        let mut leaf_size = 2_i32.pow((self.level_count - 1) as u32) as usize;
         let mut current_node = self.root.clone();
         while leaf_size > 1 {
             if current_index < (leaf_size / 2) {
@@ -132,7 +132,6 @@ pub fn verify(root: &H256, datum: &H256, proof: &[H256], index: usize, leaf_size
 #[cfg(test)]
 mod tests {
     use crate::crypto::hash::H256;
-    use crate::crypto::merkle::MerkleTree;
     use super::*;
 
     macro_rules! gen_merkle_tree_data {
@@ -140,8 +139,6 @@ mod tests {
             vec![
                 (hex!("0a0b0c0d0e0f0e0d0a0b0c0d0e0f0e0d0a0b0c0d0e0f0e0d0a0b0c0d0e0f0e0d")).into(),
                 (hex!("0101010101010101010101010101010101010101010101010101010101010202")).into(),
-                (hex!("0a0b0c0d0e0f0e0d0a0b0c0d0e0f0e0d0a0b0c0d0e0f0e0d0a0b0c0d0e0f0eff")).into(),
-                (hex!("0101010101010101010101010101010101010101010101010101010101010298")).into(),
             ]
         }};
     }
@@ -153,7 +150,7 @@ mod tests {
         let root = merkle_tree.root();
         assert_eq!(
             root,
-            (hex!("a4624349c900075ba9cce8e452f4aa925d7c616cf91ce92df7b181b8b8129809")).into()
+            (hex!("6b787718210e0b3b608814e04e61fde06d0df794319a12162f287412df3ec920")).into()
         );
         // "b69566be6e1720872f73651d1851a0eae0060a132cf0f64a0ffaea248de6cba0" is the hash of
         // "0a0b0c0d0e0f0e0d0a0b0c0d0e0f0e0d0a0b0c0d0e0f0e0d0a0b0c0d0e0f0e0d"
@@ -168,14 +165,9 @@ mod tests {
     fn proof() {
         let input_data: Vec<H256> = gen_merkle_tree_data!();
         let merkle_tree = MerkleTree::new(&input_data);
-        let proof = merkle_tree.proof(2);
-        for i in 0..proof.len() {
-            println!("{}", proof[i]);
-        }
+        let proof = merkle_tree.proof(0);
         assert_eq!(proof,
-                   vec![
-                       hex!("8eb437e765dc1a7dbbf78d9ba8ad51684a460524c376d18f83a7a1013e05c51b").into(),
-                       hex!("6b787718210e0b3b608814e04e61fde06d0df794319a12162f287412df3ec920").into()]
+                   vec![hex!("965b093a75a75895a351786dd7a188515173f6928a8af8c9baa4dcff268a4f0f").into()]
         );
         // "965b093a75a75895a351786dd7a188515173f6928a8af8c9baa4dcff268a4f0f" is the hash of
         // "0101010101010101010101010101010101010101010101010101010101010202"
@@ -185,7 +177,7 @@ mod tests {
     fn verifying() {
         let input_data: Vec<H256> = gen_merkle_tree_data!();
         let merkle_tree = MerkleTree::new(&input_data);
-        let proof = merkle_tree.proof(1);
-        assert!(verify(&merkle_tree.root(), &input_data[1].hash(), &proof, 1, input_data.len()));
+        let proof = merkle_tree.proof(0);
+        assert!(verify(&merkle_tree.root(), &input_data[0].hash(), &proof, 0, input_data.len()));
     }
 }
